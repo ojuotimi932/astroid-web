@@ -1,19 +1,6 @@
 /** Core domain models mirroring the Astroid API entities (PRD Doc 5 / Doc 6). */
 
-import { z } from 'zod';
-
 export type Asset = 'XLM' | 'USDC' | string;
-
-export type StellarAddress = string;
-export type AssetCode = string;
-
-export const stellarAddressSchema = z
-  .string()
-  .regex(/^G[A-Z2-7]{55}$/, 'Invalid Stellar public key');
-
-export const assetCodeSchema = z
-  .string()
-  .regex(/^[A-Za-z0-9]{1,12}$/, 'Invalid asset code');
 
 export type StellarNetwork = 'testnet' | 'public';
 
@@ -106,32 +93,8 @@ export type WalletStatus = 'active' | 'frozen' | 'paused' | 'archived';
 
 export interface AssetBalance {
   asset: Asset;
-  assetIssuer?: StellarAddress;
   balance: number;
   usdValue: number;
-}
-
-export type TrustlineStatus = 'active' | 'inactive' | 'pending';
-
-export interface Trustline {
-  assetCode: AssetCode;
-  assetIssuer?: StellarAddress;
-  balance: number;
-  limit: number;
-  status: TrustlineStatus;
-  isNative: boolean;
-}
-
-export interface StellarAsset {
-  assetCode: AssetCode;
-  assetIssuer?: StellarAddress;
-  isNative: boolean;
-}
-
-export interface TrustlineRequest {
-  assetCode: AssetCode;
-  assetIssuer: StellarAddress;
-  limit: number;
 }
 
 export interface Wallet {
@@ -139,12 +102,11 @@ export interface Wallet {
   organizationId: string;
   agentId?: string;
   name: string;
-  stellarAddress: StellarAddress;
+  stellarAddress: string;
   walletType: WalletType;
   network: StellarNetwork;
   status: WalletStatus;
   balances: AssetBalance[];
-  trustlines?: Trustline[];
   totalUsdValue: number;
   riskScore: number;
   createdAt: string;

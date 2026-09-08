@@ -1,1 +1,0 @@
-export { FinancialBriefingDrawer } from './FinancialBriefingDrawer';
