@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,40 +10,29 @@ import { FormField, Input, Select, Textarea } from '@/components/ui/input';
 import { agentWizardSchema, providerOptions, type AgentWizardValues } from '@/features/agents/schema';
 
 const steps = [
-  { key: 'basic', label: 'Identity & Role' },
-  { key: 'model', label: 'Engine Settings' },
-  { key: 'funding', label: 'Spend Constraints' },
-  { key: 'confirmation', label: 'Final Review' },
+  { key: 'basic', label: 'Basic info' },
+  { key: 'model', label: 'Model selection' },
+  { key: 'funding', label: 'Funding & limits' },
+  { key: 'confirmation', label: 'Confirmation' },
 ] as const;
 
 const stepFields: Record<number, (keyof AgentWizardValues)[]> = {
   0: ['name', 'description', 'ownerDepartment'],
-  1: ['provider', 'model', 'temperature', 'apiKey'],
+  1: ['provider', 'model', 'apiKey'],
   2: ['budget', 'singleTransactionCap'],
   3: [],
 };
 
-const stepVariants = {
-  initial: (direction: number) => ({ opacity: 0, x: direction >= 0 ? 24 : -24 }),
-  animate: { opacity: 1, x: 0 },
-  exit: (direction: number) => ({ opacity: 0, x: direction >= 0 ? -24 : 24 }),
-};
-
-const transition = { duration: 0.2, ease: 'easeOut' } as const;
-
 export function AgentWizard() {
   const [step, setStep] = useState(0);
-  const [direction, setDirection] = useState(1);
   const form = useForm<AgentWizardValues>({
     resolver: zodResolver(agentWizardSchema),
-    shouldUnregister: false,
     defaultValues: {
       name: '',
       description: '',
       ownerDepartment: '',
       provider: 'OpenAI',
       model: 'gpt-4o-mini',
-      temperature: 0.7,
       apiKey: '',
       budget: 5000,
       singleTransactionCap: 1500,
@@ -57,7 +45,6 @@ export function AgentWizard() {
   const handleNext = async () => {
     const fields = stepFields[step] ?? [];
     if (!fields.length) {
-      setDirection(1);
       setStep((value) => Math.min(value + 1, steps.length - 1));
       return;
     }
@@ -65,17 +52,11 @@ export function AgentWizard() {
     const valid = await form.trigger(fields);
     if (!valid) return;
 
-    setDirection(1);
     setStep((value) => Math.min(value + 1, steps.length - 1));
   };
 
-  const mockCreateAgent = async (values: AgentWizardValues) => {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    console.info('[mock] Agent creation payload', JSON.stringify(values, null, 2));
-  };
-
   const onSubmit = (values: AgentWizardValues) => {
-    void mockCreateAgent(values);
+    console.info('Agent registration payload', values);
     setStep(steps.length - 1);
   };
 
@@ -97,7 +78,6 @@ export function AgentWizard() {
                   ? 'border-gold bg-gold-soft text-gold-strong'
                   : 'border-border bg-surface-secondary text-foreground-secondary'
               }`}
-              aria-current={index === step ? 'step' : undefined}
             >
               {item.label}
             </span>
@@ -105,16 +85,6 @@ export function AgentWizard() {
         </div>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={step}
-              custom={direction}
-              variants={stepVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={transition}
-            >
           {step === 0 && (
             <div className="space-y-4">
               <FormField label="Agent name" htmlFor="agent-name" error={form.formState.errors.name?.message} required>
@@ -177,18 +147,6 @@ export function AgentWizard() {
                 />
               </FormField>
 
-              <FormField label="Temperature" htmlFor="temperature" error={form.formState.errors.temperature?.message}>
-                <Input
-                  id="temperature"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="2"
-                  {...form.register('temperature', { valueAsNumber: true })}
-                  invalid={Boolean(form.formState.errors.temperature)}
-                />
-              </FormField>
-
               <FormField label="Provider key" htmlFor="api-key" error={form.formState.errors.apiKey?.message}>
                 <Input
                   id="api-key"
@@ -203,12 +161,12 @@ export function AgentWizard() {
 
           {step === 2 && (
             <div className="space-y-4">
-              <FormField label="Daily spend limit (XLM)" htmlFor="budget" error={form.formState.errors.budget?.message} required>
+              <FormField label="Initial budget (XLM)" htmlFor="budget" error={form.formState.errors.budget?.message} required>
                 <Input
                   id="budget"
                   type="number"
                   step="0.01"
-                  {...form.register('budget', { valueAsNumber: true })}
+                  {...form.register('budget')}
                   invalid={Boolean(form.formState.errors.budget)}
                 />
               </FormField>
@@ -223,7 +181,7 @@ export function AgentWizard() {
                   id="singleTransactionCap"
                   type="number"
                   step="0.01"
-                  {...form.register('singleTransactionCap', { valueAsNumber: true })}
+                  {...form.register('singleTransactionCap')}
                   invalid={Boolean(form.formState.errors.singleTransactionCap)}
                 />
               </FormField>
@@ -239,10 +197,6 @@ export function AgentWizard() {
                   <dd className="mt-1 text-sm text-foreground">{form.watch('name')}</dd>
                 </div>
                 <div>
-                  <dt className="text-2xs uppercase tracking-wide text-foreground-secondary">Description</dt>
-                  <dd className="mt-1 text-sm text-foreground">{form.watch('description')}</dd>
-                </div>
-                <div>
                   <dt className="text-2xs uppercase tracking-wide text-foreground-secondary">Department</dt>
                   <dd className="mt-1 text-sm text-foreground">{form.watch('ownerDepartment')}</dd>
                 </div>
@@ -255,35 +209,22 @@ export function AgentWizard() {
                   <dd className="mt-1 text-sm text-foreground">{form.watch('model')}</dd>
                 </div>
                 <div>
-                  <dt className="text-2xs uppercase tracking-wide text-foreground-secondary">Temperature</dt>
-                  <dd className="mt-1 text-sm text-foreground">{form.watch('temperature')}</dd>
-                </div>
-                <div>
-                  <dt className="text-2xs uppercase tracking-wide text-foreground-secondary">Provider key</dt>
-                  <dd className="mt-1 text-sm text-foreground">{form.watch('apiKey') ? '********' : 'Not provided'}</dd>
-                </div>
-                <div>
-                  <dt className="text-2xs uppercase tracking-wide text-foreground-secondary">Daily limit</dt>
+                  <dt className="text-2xs uppercase tracking-wide text-foreground-secondary">Budget</dt>
                   <dd className="mt-1 text-sm text-foreground">{form.watch('budget')} XLM</dd>
                 </div>
                 <div>
-                  <dt className="text-2xs uppercase tracking-wide text-foreground-secondary">Single cap</dt>
+                  <dt className="text-2xs uppercase tracking-wide text-foreground-secondary">Cap</dt>
                   <dd className="mt-1 text-sm text-foreground">{form.watch('singleTransactionCap')} XLM</dd>
                 </div>
               </dl>
             </div>
           )}
-            </motion.div>
-          </AnimatePresence>
 
           <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
             <Button
               type="button"
               variant="secondary"
-              onClick={() => {
-                setDirection(-1);
-                setStep((value) => Math.max(value - 1, 0));
-              }}
+              onClick={() => setStep((value) => Math.max(value - 1, 0))}
               disabled={step === 0}
               leftIcon={<ArrowLeft className="h-4 w-4" aria-hidden />}
             >
@@ -292,7 +233,7 @@ export function AgentWizard() {
 
             {step < steps.length - 1 ? (
               <Button type="button" variant="gold" onClick={handleNext} rightIcon={<ArrowRight className="h-4 w-4" aria-hidden />}>
-                {currentStep.label === 'Spend Constraints' ? 'Review' : 'Next'}
+                {currentStep.label === 'Confirmation' ? 'Review' : 'Next'}
               </Button>
             ) : (
               <Button type="submit" variant="gold">

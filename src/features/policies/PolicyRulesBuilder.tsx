@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  defaultPolicyRules,
   defaultRule,
   ruleActionOptions,
   ruleFieldOptions,
@@ -17,7 +16,20 @@ import {
 
 export function PolicyRulesBuilder() {
   const [draft, setDraft] = useState<PolicyRule>(defaultRule);
-  const [rules, setRules] = useState<PolicyRule[]>(defaultPolicyRules);
+  const [rules, setRules] = useState<PolicyRule[]>([
+    {
+      field: 'Transaction Amount',
+      operator: 'greater_than',
+      value: '2500',
+      action: 'require_approval',
+    },
+    {
+      field: 'Approved Account Whitelist',
+      operator: 'in_whitelist',
+      value: 'G...A1, G...B2',
+      action: 'allow',
+    },
+  ]);
   const [error, setError] = useState<string | null>(null);
   const [simulationAmount, setSimulationAmount] = useState(500);
 
